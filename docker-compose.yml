@@ -38,11 +38,10 @@ services:
       PGDATA: /database
 
   concourse-web:
-    image: concourse/concourse
+    image: concourse/concourse:3.2.1
     links: [concourse-db, riemann]
-    depends_on: [riemann, curl]
     command: web
-    depends_on: [concourse-db, riemann]
+    depends_on: [concourse-db, riemann, curl]
     ports: ["8080:8080"]
     volumes: ["./keys/web:/concourse-keys"]
     restart: unless-stopped # required so that it retries until conocurse-db comes up
@@ -58,7 +57,7 @@ services:
       CONCOURSE_RIEMANN_HOST: 10.0.2.15
 
   concourse-worker:
-    image: concourse/concourse
+    image: concourse/concourse:3.2.1
     privileged: true
     links: [concourse-web, riemann]
     depends_on: [concourse-web, riemann, curl]
