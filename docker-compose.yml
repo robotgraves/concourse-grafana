@@ -1,0 +1,69 @@
+version: '3'
+
+services:
+  influxdb:
+    image: influxdb
+    ports: ["8086:8086", "8083:8083", "2003:2003"]
+
+  curl:
+    image: appropriate/curl
+    links: [influxdb]
+    depends_on: [influxdb]
+# HOST URL IS DEPENDENT ON YOUR DOCKER DAEMON CONFIGURATION
+    command: curl -i -XPOST http://10.0.2.15:8086/query --data-urlencode "q=CREATE DATABASE riemann"
+
+  riemann:
+    image: robotgraves/riemann
+    links: [influxdb]
+    depends_on: [influxdb, curl]
+    ports: ["5555:5555", "5555:5555/udp", "5556:5556"]
+# USE THIS PORTION IF YOU WOULD LIKE TO OVERWRITE THE BUILT IN CONFIG FILE
+#    volumes:
+#      - $PWD/riemann/etc:/app/etc
+
+  grafana:
+    image: grafana/grafana
+    links: [influxdb]
+    depends_on: [influxdb, curl]
+    ports: ["3000:3000"]
+
+  concourse-db:
+    image: postgres:9.5
+    links: [riemann]
+    depends_on: [riemann, curl]
+    environment:
+      POSTGRES_DB: concourse
+      POSTGRES_USER: concourse
+      POSTGRES_PASSWORD: changeme
+      PGDATA: /database
+
+  concourse-web:
+    image: concourse/concourse
+    links: [concourse-db, riemann]
+    depends_on: [riemann, curl]
+    command: web
+    depends_on: [concourse-db, riemann]
+    ports: ["8080:8080"]
+    volumes: ["./keys/web:/concourse-keys"]
+    restart: unless-stopped # required so that it retries until conocurse-db comes up
+    environment:
+      CONCOURSE_BASIC_AUTH_USERNAME: concourse
+      CONCOURSE_BASIC_AUTH_PASSWORD: changeme
+# DEPENDENT ON YOUR HOST DOCKER DAEMON CONFIGURATION
+      CONCOURSE_EXTERNAL_URL: "10.0.2.15"
+      CONCOURSE_POSTGRES_HOST: concourse-db
+      CONCOURSE_POSTGRES_USER: concourse
+      CONCOURSE_POSTGRES_PASSWORD: changeme
+      CONCOURSE_POSTGRES_DATABASE: concourse
+      CONCOURSE_RIEMANN_HOST: 10.0.2.15
+
+  concourse-worker:
+    image: concourse/concourse
+    privileged: true
+    links: [concourse-web, riemann]
+    depends_on: [concourse-web, riemann, curl]
+    command: worker
+    volumes: ["./keys/worker:/concourse-keys"]
+    environment:
+      CONCOURSE_TSA_HOST: concourse-web
+      CONCOURSE_GARDEN_DNS_SERVER: 8.8.8.8
