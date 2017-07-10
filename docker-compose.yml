@@ -27,26 +27,23 @@ services:
     depends_on: [influxdb, curl]
     ports: ["3000:3000"]
 
-  docker-stats-exporter:
-    image: cdewitt/docker-stats-exporter:0.1.5
-    restart: always
-    volumes:
-     - /var/run/docker.sock:/var/run/docker.sock
-     - /:/rootfs:ro
-    ports: ["8081:8081"]
-    environment:
-     - REFRESH_INTERVAL=15
-     - USE_PSEUDO_FILES=1
-     - LOGSPOUT=ignore
-     - PROC_DIRECTORY=/rootfs/proc
-     - CGROUP_DIRECTORY=/rootfs/sys/fs/cgroup
-
-  node-exporter:
+  docker-node-exporter:
     image: prom/node-exporter
     restart: always
     ports: ["9100:9100"]
     environment:
      - LOGSPOUT=ignore
+
+  prometheus:
+    image: prom/prometheus:v1.0.1
+    restart: always
+    ports: ["9090:9090"]
+    volumes:
+     - ./prometheus/prometheus.yml:/prometheus.yml
+    environment:
+     - LOGSPOUT=ignore
+    command:
+     - -config.file=/prometheus.yml
 
   concourse-db:
     image: postgres:9.5
