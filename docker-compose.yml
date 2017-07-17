@@ -27,6 +27,24 @@ services:
     depends_on: [influxdb, curl]
     ports: ["3000:3000"]
 
+  docker-node-exporter:
+    image: prom/node-exporter
+    restart: always
+    ports: ["9100:9100"]
+    environment:
+     - LOGSPOUT=ignore
+
+  prometheus:
+    image: prom/prometheus:v1.0.1
+    restart: always
+    ports: ["9090:9090"]
+    volumes:
+     - ./prometheus/prometheus.yml:/prometheus.yml
+    environment:
+     - LOGSPOUT=ignore
+    command:
+     - -config.file=/prometheus.yml
+
   concourse-db:
     image: postgres:9.5
     links: [riemann]
@@ -42,7 +60,7 @@ services:
     links: [concourse-db, riemann]
     command: web
     depends_on: [concourse-db, riemann, curl]
-    ports: ["8080:8080"]
+    ports: ["8080:8080", "2222:2222"]
     volumes: ["./keys/web:/concourse-keys"]
     restart: unless-stopped # required so that it retries until conocurse-db comes up
     environment:
