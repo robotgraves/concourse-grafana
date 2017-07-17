@@ -60,7 +60,7 @@ services:
     links: [concourse-db, riemann]
     command: web
     depends_on: [concourse-db, riemann, curl]
-    ports: ["8080:8080"]
+    ports: ["8080:8080", "2222:2222"]
     volumes: ["./keys/web:/concourse-keys"]
     restart: unless-stopped # required so that it retries until conocurse-db comes up
     environment:
