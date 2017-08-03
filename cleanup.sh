@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-set -x -e
-
-
 ### ADJUST THIS SECTION DEPENDING ON HOST MACHINE CONTAINING FLY OR NOT ###
 #wget -O /tmp/fly https://github.com/concourse/concourse/releases/download/v3.2.1/fly_linux_amd64
 #mv /tmp/fly /usr/local/bin/fly
@@ -30,10 +27,10 @@ if echo $OUTPUT | grep "running"; then
         export OUTPUT="$(fly -t test workers | grep $CONTAINER)"
         if echo $OUTPUT | grep "running"; then
             echo "still running, shutting down soon"
-            sleep 1
+            sleep 2
         elif echo $OUTPUT | grep "retiring"; then
             echo "retiring, shutting down soon"
-            sleep 1
+            sleep 2
         elif [ -z "$OUTPUT" ]; then
             echo "worker has shut down"
             x=1
@@ -42,7 +39,23 @@ if echo $OUTPUT | grep "running"; then
             x=1
         fi
     done
+    sleep 2
 fi
+x=0
+while [ $x -eq 0 ]
+# LOOP ON CLOSING PROCEDURES #
+do
+    export CONTAINER="$(docker ps -aqf 'name='$CONTAINER_NAME'')"
+    if [ -z "$CONTAINER" ]; then
+        echo "container has shut down"
+        x=1
+        sleep 2
+    else
+        echo "container has not shut down"
+        docker rm $CONTAINER_NAME || true
+        sleep 2
+    fi
+done
 # CLEAN UP CONTAINER AND VOLUMES, AND FOLLOW UP WITH RESTARTING THE CONTAINER #
-docker volume rm $(docker volume ls -f dangling=true -q)
-docker-compose up --no-recreate --no-deps -d $COMPOSE_NAME
+docker volume rm "$(docker volume ls -f dangling=true -q)" || true
+docker-compose up --no-recreate --no-deps -d "$COMPOSE_NAME"
