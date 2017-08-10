@@ -56,7 +56,7 @@ services:
       PGDATA: /database
 
   concourse-web:
-    image: concourse/concourse:3.2.1
+    image: concourse/concourse:3.3.4
     links: [concourse-db, riemann]
     command: web
     depends_on: [concourse-db, riemann, curl]
@@ -75,7 +75,7 @@ services:
       CONCOURSE_RIEMANN_HOST: 10.0.2.15
 
   concourse-worker:
-    image: concourse/concourse:3.2.1
+    image: concourse/concourse:3.3.4
     privileged: true
     links: [concourse-web, riemann]
     depends_on: [concourse-web, riemann, curl]
