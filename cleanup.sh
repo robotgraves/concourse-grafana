@@ -59,3 +59,9 @@ done
 # CLEAN UP CONTAINER AND VOLUMES, AND FOLLOW UP WITH RESTARTING THE CONTAINER #
 docker volume rm "$(docker volume ls -f dangling=true -q)" || true
 docker-compose up --no-recreate --no-deps -d "$COMPOSE_NAME"
+export OUTPUT="$(fly -t test workers | grep stalled)"
+if echo $OUTPUT | grep "retiring"; then
+    OUTPUT=($OUTPUT)
+    STALLED=${OUTPUT[0]}
+    fly -t test prune-worker -w $STALLED
+fi
