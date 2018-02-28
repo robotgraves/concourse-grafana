@@ -7,7 +7,7 @@
 
 ### ADJUST THIS SECTION TO LOG INTO THE APPROPRIATE CONCOURSE (use -n for team name)
 #fly -t test login -c http://10.0.2.15:8080 -u concourse -p changeme
-
+fly -t test sync
 
 ### ADJUST THIS SECTION FOR THE APPROPRIATE CONTAINER NAME ###
 export CONTAINER_NAME=concoursegrafana_concourse-worker_1
@@ -23,6 +23,9 @@ if echo $OUTPUT | grep "running"; then
     if echo $OUTPUT | grep "connection error"; then
         killall -9 dockerd
         docker ps -aq --no-trunc | xargs docker rm
+    elif echo $OUTPUT | grep "connection refused"; then
+        docker kill $CONTAINER
+    fi
     x=0
     # LOOP ON CLOSING PROCEDURES #
     while [ $x -eq 0 ]
@@ -30,6 +33,7 @@ if echo $OUTPUT | grep "running"; then
         export OUTPUT="$(fly -t test workers | grep $CONTAINER)"
         if echo $OUTPUT | grep "running"; then
             echo "still running, shutting down soon"
+            docker exec $CONTAINER_NAME concourse retire-worker --name $CONTAINER
             sleep 2
         elif echo $OUTPUT | grep "retiring"; then
             echo "retiring, shutting down soon"
