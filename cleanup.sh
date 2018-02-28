@@ -19,7 +19,10 @@ export CONTAINER="$(docker ps -aqf 'name='$CONTAINER_NAME'')"
 export OUTPUT="$(fly -t test workers | grep $CONTAINER)"
 # CHECK TO MAKE SURE THAT THE WORKER IS CURRENTLY RUNNING #
 if echo $OUTPUT | grep "running"; then
-    docker exec $CONTAINER_NAME concourse retire-worker --name $CONTAINER
+    export OUTPUT="docker exec $CONTAINER_NAME concourse retire-worker --name $CONTAINER"
+    if echo $OUTPUT | grep "connection error"; then
+        killall -9 dockerd
+        docker ps -aq --no-trunc | xargs docker rm
     x=0
     # LOOP ON CLOSING PROCEDURES #
     while [ $x -eq 0 ]
