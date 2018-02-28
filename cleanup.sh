@@ -47,6 +47,11 @@ if echo $OUTPUT | grep "running"; then
         fi
     done
     sleep 2
+elif [ -z $CONTAINER ]; then
+    echo "container was dead before we started"
+else
+    echo "something is wrong"
+    exit 1
 fi
 x=0
 while [ $x -eq 0 ]
