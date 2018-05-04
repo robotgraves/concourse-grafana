@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+
+echo "starting cleanup"
 ### ADJUST THIS SECTION DEPENDING ON HOST MACHINE CONTAINING FLY OR NOT ###
 #wget -O /tmp/fly https://github.com/concourse/concourse/releases/download/v3.2.1/fly_linux_amd64
 #mv /tmp/fly /usr/local/bin/fly
@@ -21,11 +23,14 @@ export OUTPUT="$(fly -t test workers | grep $CONTAINER)"
 if echo $OUTPUT | grep "running"; then
     export OUTPUT="docker exec $CONTAINER_NAME concourse retire-worker --name $CONTAINER"
     if echo $OUTPUT | grep "connection error"; then
+        echo "docker is dead, rebooting on first try"
         killall -9 dockerd
         docker ps -aq --no-trunc | xargs docker rm
     elif echo $OUTPUT | grep "connection refused"; then
+        echo "docker is nonresponsive, rebooting on first try"
         docker kill $CONTAINER
     fi
+    sleep 2
     x=0
     # LOOP ON CLOSING PROCEDURES #
     while [ $x -eq 0 ]
@@ -33,7 +38,15 @@ if echo $OUTPUT | grep "running"; then
         export OUTPUT="$(fly -t test workers | grep $CONTAINER)"
         if echo $OUTPUT | grep "running"; then
             echo "still running, shutting down soon"
-            docker exec $CONTAINER_NAME concourse retire-worker --name $CONTAINER
+            export OUTPUT="docker exec $CONTAINER_NAME concourse retire-worker --name $CONTAINER"
+            if echo $OUTPUT | grep "connection error"; then
+                echo "docker is dead, rebooting inside loop"
+                killall -9 dockerd
+                docker ps -aq --no-trunc | xargs docker rm
+            elif echo $OUTPUT | grep "connection refused"; then
+                echo "docker is nonresponsive, rebooting inside loop"
+                docker kill $CONTAINER
+            fi
             sleep 2
         elif echo $OUTPUT | grep "retiring"; then
             echo "retiring, shutting down soon"
@@ -77,3 +90,4 @@ if echo $OUTPUT | grep "retiring"; then
     STALLED=${OUTPUT[0]}
     fly -t test prune-worker -w $STALLED
 fi
+echo "cleanup finished"
