@@ -14,6 +14,7 @@ fly -t test sync
 ### ADJUST THIS SECTION FOR THE APPROPRIATE CONTAINER NAME ###
 export CONTAINER_NAME=concoursegrafana_concourse-worker_1
 export COMPOSE_NAME=concourse-worker
+export COMPOSE_FILE=docker-compose.yml
 ##############################################################
 
 
@@ -21,7 +22,7 @@ export CONTAINER="$(docker ps -aqf 'name='$CONTAINER_NAME'')"
 export OUTPUT="$(fly -t test workers | grep $CONTAINER)"
 # CHECK TO MAKE SURE THAT THE WORKER IS CURRENTLY RUNNING #
 if echo $OUTPUT | grep "running"; then
-    export OUTPUT="docker exec $CONTAINER_NAME concourse retire-worker --name $CONTAINER"
+    export OUTPUT="$(docker exec $CONTAINER_NAME concourse retire-worker --name $CONTAINER)"
     if echo $OUTPUT | grep "connection error"; then
         echo "docker is dead, rebooting on first try"
         killall -9 dockerd
@@ -38,7 +39,7 @@ if echo $OUTPUT | grep "running"; then
         export OUTPUT="$(fly -t test workers | grep $CONTAINER)"
         if echo $OUTPUT | grep "running"; then
             echo "still running, shutting down soon"
-            export OUTPUT="docker exec $CONTAINER_NAME concourse retire-worker --name $CONTAINER"
+            export OUTPUT="$(docker exec $CONTAINER_NAME concourse retire-worker --name $CONTAINER)"
             if echo $OUTPUT | grep "connection error"; then
                 echo "docker is dead, rebooting inside loop"
                 killall -9 dockerd
@@ -83,7 +84,7 @@ do
 done
 # CLEAN UP CONTAINER AND VOLUMES, AND FOLLOW UP WITH RESTARTING THE CONTAINER #
 docker volume rm "$(docker volume ls -f dangling=true -q)" || true
-docker-compose up --no-recreate --no-deps -d "$COMPOSE_NAME"
+docker-compose up -f "$COMPOSE_FILE" --no-recreate --no-deps -d "$COMPOSE_NAME"
 export OUTPUT="$(fly -t test workers | grep stalled)"
 if echo $OUTPUT | grep "retiring"; then
     OUTPUT=($OUTPUT)
