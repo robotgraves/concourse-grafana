@@ -30,6 +30,7 @@ if echo $OUTPUT | grep "running"; then
         echo "docker is nonresponsive, rebooting on first try"
         docker kill $CONTAINER
     fi
+    sleep 2
     x=0
     # LOOP ON CLOSING PROCEDURES #
     while [ $x -eq 0 ]
