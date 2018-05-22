@@ -83,7 +83,7 @@ do
     fi
 done
 # CLEAN UP CONTAINER AND VOLUMES, AND FOLLOW UP WITH RESTARTING THE CONTAINER #
-docker volume rm "$(docker volume ls -f dangling=true -q)" || true
+docker volume rm $(docker volume ls -f dangling=true -q) || true
 docker-compose up -f "$COMPOSE_FILE" --no-recreate --no-deps -d "$COMPOSE_NAME"
 export OUTPUT="$(fly -t test workers | grep stalled)"
 if echo $OUTPUT | grep "retiring"; then
